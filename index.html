@@ -26,6 +26,7 @@
     h2 { margin: 0 0 18px 0; text-align: center; color: #202124; font-size: 20px; }
     .form-group { margin-bottom: 14px; }
     label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: #3c4043; }
+    .note { font-size: 12px; font-weight: normal; color: #5f6368; }
     input {
       width: 100%;
       padding: 13px;
@@ -41,14 +42,14 @@
       padding: 15px;
       font-size: 16px;
       font-weight: 600;
-      background: #1a73e8;
+      background: #3b66de;
       color: white;
       border: none;
       border-radius: 8px;
       cursor: pointer;
       margin-top: 8px;
     }
-    button:active { background: #1557b0; }
+    button:active { background: #2b4ebd; }
     #status {
       margin-top: 14px;
       font-size: 14px;
@@ -69,13 +70,21 @@
   </div>
 
   <div class="form-group">
-    <label for="amount">2. Số tiền viếng (VNĐ)</label>
-    <input type="number" id="amount" placeholder="Ví dụ: 500000" inputmode="numeric" autocomplete="off">
+    <label for="amount">2. Số tiền viếng <span class="note">(đơn vị: nghìn đồng — vd gõ 500 = 500k)</span></label>
+    <input type="number" id="amount" placeholder="Ví dụ: 500, 1000, 2000" inputmode="numeric" autocomplete="off">
   </div>
 
   <div class="form-group">
-    <label for="host">3. Khách của ai</label>
-    <input type="text" id="host" placeholder="Ví dụ: Bạn Ba, Bạn Triết, Bà con Mẹ" autocomplete="off">
+    <label for="host">3. Khách của ai <span class="note">(chọn hoặc tự gõ tên khác)</span></label>
+    <input list="host-list" id="host" placeholder="Gõ tìm hoặc chọn gợi ý..." autocomplete="off">
+    <datalist id="host-list">
+      <option value="Hai Phúc">
+      <option value="Ba Hạnh">
+      <option value="Tư Hiếu">
+      <option value="Năm Thảo">
+      <option value="Sáu Hiền">
+      <option value="Út Bạch Lan">
+    </datalist>
   </div>
 
   <button type="button" id="submitBtn" onclick="submitData()">LƯU TIẾP (ENTER)</button>
@@ -83,7 +92,7 @@
 </div>
 
 <script>
-  // DÁN URL BẠN VỪA SAO CHÉP VÀO GIỮA 2 DẤU NGOẶC KÉP DƯỚI ĐÂY:
+  // Dán lại link Web App của bạn vào đây:
   const SCRIPT_URL = https://script.google.com/macros/s/AKfycbwx-uF1tmuDJtRF0noB_mBIgYSJvant0ZVr9jBEGPSMQABTkZB3rEC4Qn-fI3vCj7aY/exec;
 
   const nameInput = document.getElementById('name');
@@ -91,6 +100,7 @@
   const hostInput = document.getElementById('host');
   const statusDiv = document.getElementById('status');
 
+  // Phím Enter chuyển ô tuần tự siêu tốc
   nameInput.addEventListener('keydown', function(e) {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -114,32 +124,42 @@
 
   function submitData() {
     const name = nameInput.value.trim();
-    const amount = amountInput.value.trim();
+    const rawAmount = amountInput.value.trim();
     const host = hostInput.value.trim();
 
-    if (!name || !amount) {
+    if (!name || !rawAmount) {
       statusDiv.style.color = '#d93025';
-      statusDiv.innerText = "Chưa nhập tên người viếng hoặc số tiền!";
+      statusDiv.innerText = "Chưa nhập đủ tên hoặc số tiền!";
       if (!name) nameInput.focus();
       else amountInput.focus();
       return;
     }
 
-    statusDiv.style.color = '#137333';
-    statusDiv.innerText = `Đã ghi: ${name} (${Number(amount).toLocaleString('vi-VN')} đ)`;
+    // Tự động quy đổi đơn vị nghìn đồng -> số tiền thực tế (vd: 500 -> 500,000)
+    const finalAmount = Number(rawAmount) * 1000;
 
+    // Hiển thị trạng thái đã lưu ngay lập tức
+    statusDiv.style.color = '#137333';
+    statusDiv.innerText = `Đã lưu: ${name} (${finalAmount.toLocaleString('vi-VN')} đ) - ${host || 'Không rõ'}`;
+
+    // Reset trắng form và trỏ về ô Người viếng ngay lập tức
     nameInput.value = '';
     amountInput.value = '';
     hostInput.value = '';
     nameInput.focus();
 
+    // Gửi ngầm dữ liệu lên Google Sheets
     fetch(SCRIPT_URL, {
       method: "POST",
       mode: "no-cors",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name, amount: amount, host: host || "Không rõ" })
+      body: JSON.stringify({ 
+        name: name, 
+        amount: finalAmount, 
+        host: host || "Không rõ" 
+      })
     }).catch(err => {
-      console.error("Lỗi gửi:", err);
+      console.error("Lỗi khi gửi:", err);
     });
   }
 </script>
